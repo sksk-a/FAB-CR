@@ -6,9 +6,23 @@ function formatPrice(value) {
     return new Intl.NumberFormat("ru-RU").format(n) + " ₽";
 }
 
+function getImageSrc(image) {
+    if (!image) return "";
+    if (image.startsWith("/uploads/")) return `http://localhost:3000${image}`;
+    return image;
+}
+
 export default function ProductItem({ product, onEdit, onDelete }) {
+    const imgSrc = getImageSrc(product.image);
+
     return (
         <div className="productRow">
+            {imgSrc ? (
+                <img className="productImage" src={imgSrc} alt={product.name} />
+            ) : (
+                <div className="productImage productImage--placeholder">No image</div>
+            )}
+
             <div className="productMain">
                 <div className="productTop">
                     <div className="productId">#{product.id}</div>
@@ -19,8 +33,12 @@ export default function ProductItem({ product, onEdit, onDelete }) {
                 <div className="productDesc">{product.description}</div>
 
                 <div className="productMeta">
-                    <div>Цена: <b>{formatPrice(product.price)}</b></div>
-                    <div>Остаток: <b>{product.stock}</b></div>
+                    <div>
+                        Цена: <b>{formatPrice(product.price)}</b>
+                    </div>
+                    <div>
+                        Остаток: <b>{product.stock}</b>
+                    </div>
                 </div>
             </div>
 

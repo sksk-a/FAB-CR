@@ -65,9 +65,18 @@ export default function ProductsPage() {
                 const created = await api.createProduct(payload);
                 setProducts((prev) => [...prev, created]);
             } else {
-                const updated = await api.updateProduct(payload.id, payload);
+                const patchPayload = { ...payload };
+                delete patchPayload.imageFile;
+
+                if (patchPayload.imageUrl) {
+                    patchPayload.image = patchPayload.imageUrl;
+                    delete patchPayload.imageUrl;
+                }
+
+                const updated = await api.updateProduct(payload.id, patchPayload);
                 setProducts((prev) => prev.map((p) => (p.id === payload.id ? updated : p)));
             }
+
             closeModal();
         } catch (err) {
             console.error(err);

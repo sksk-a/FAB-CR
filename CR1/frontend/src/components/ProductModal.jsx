@@ -7,7 +7,7 @@ const CATEGORIES = [
     "Гарнитуры",
     "Микрофоны",
     "Геймпады",
-    "Стриминг",
+    "Стрим",
     "Аксессуары",
 ];
 
@@ -18,6 +18,11 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
     const [price, setPrice] = useState("");
     const [stock, setStock] = useState("");
 
+    // Картинка: none | url | file
+    const [imageMode, setImageMode] = useState("none");
+    const [imageUrl, setImageUrl] = useState("");
+    const [imageFile, setImageFile] = useState(null);
+
     const title = useMemo(
         () => (mode === "edit" ? "Редактирование товара" : "Добавление товара"),
         [mode]
@@ -25,11 +30,17 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
 
     useEffect(() => {
         if (!open) return;
+
         setName(initialProduct?.name ?? "");
         setCategory(initialProduct?.category ?? CATEGORIES[0]);
         setDescription(initialProduct?.description ?? "");
         setPrice(initialProduct?.price != null ? String(initialProduct.price) : "");
         setStock(initialProduct?.stock != null ? String(initialProduct.stock) : "");
+
+        // На открытии сбрасываем выбор картинки (так безопаснее)
+        setImageMode("none");
+        setImageUrl("");
+        setImageFile(null);
     }, [open, initialProduct]);
 
     if (!open) return null;
@@ -47,17 +58,36 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
         if (!trimmedName) return alert("Введите название");
         if (!trimmedCategory) return alert("Введите категорию");
         if (trimmedDesc.length < 5) return alert("Описание минимум 5 символов");
-        if (!Number.isFinite(parsedPrice) || parsedPrice < 0) return alert("Цена должна быть числом >= 0");
-        if (!Number.isFinite(parsedStock) || parsedStock < 0) return alert("Остаток должен быть числом >= 0");
+        if (!Number.isFinite(parsedPrice) || parsedPrice < 0)
+            return alert("Цена должна быть числом >= 0");
+        if (!Number.isFinite(parsedStock) || parsedStock < 0)
+            return alert("Остаток должен быть числом >= 0");
 
-        onSubmit({
+        if (imageMode === "url" && imageUrl.trim() && !/^https?:\/\//i.test(imageUrl.trim())) {
+            return alert("URL должен начинаться с http:// или https://");
+        }
+        if (imageMode === "file" && !imageFile) {
+            return alert("Выбери файл картинки");
+        }
+
+        const payload = {
             id: initialProduct?.id,
             name: trimmedName,
             category: trimmedCategory,
             description: trimmedDesc,
             price: parsedPrice,
             stock: parsedStock,
-        });
+        };
+
+        // Добавляем картинку только если пользователь выбрал
+        if (imageMode === "url" && imageUrl.trim()) {
+            payload.imageUrl = imageUrl.trim();
+        }
+        if (imageMode === "file" && imageFile) {
+            payload.imageFile = imageFile; // File object
+        }
+
+        onSubmit(payload);
     };
 
     return (
@@ -134,6 +164,47 @@ export default function ProductModal({ open, mode, initialProduct, onClose, onSu
                             placeholder="Например, 10"
                         />
                     </label>
+
+                    <label className="label">
+                        Картинка
+                        <select
+                            className="input"
+                            value={imageMode}
+                            onChange={(e) => {
+                                setImageMode(e.target.value);
+                                setImageUrl("");
+                                setImageFile(null);
+                            }}
+                        >
+                            <option value="none">Не менять / без</option>
+                            <option value="url">Указать URL</option>
+                            <option value="file">Загрузить файл</option>
+                        </select>
+                    </label>
+
+                    {imageMode === "url" && (
+                        <label className="label">
+                            URL картинки
+                            <input
+                                className="input"
+                                value={imageUrl}
+                                onChange={(e) => setImageUrl(e.target.value)}
+                                placeholder="https://example.com/image.jpg"
+                            />
+                        </label>
+                    )}
+
+                    {imageMode === "file" && (
+                        <label className="label">
+                            Файл картинки
+                            <input
+                                className="input"
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                            />
+                        </label>
+                    )}
 
                     <div className="modal__footer">
                         <button type="button" className="btn" onClick={onClose}>

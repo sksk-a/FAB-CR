@@ -1,3 +1,5 @@
+const path = require("path");
+const multer = require("multer");
 const express = require("express");
 const cors = require("cors");
 const { nanoid } = require("nanoid");
@@ -7,6 +9,8 @@ const port = 3000;
 
 app.use(express.json());
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.use(
     cors({
         origin: "http://localhost:3001",
@@ -15,14 +19,12 @@ app.use(
     })
 );
 
+// лог запросов
 app.use((req, res, next) => {
     res.on("finish", () => {
         console.log(
             `[${new Date().toISOString()}] [${req.method}] ${res.statusCode} ${req.path}`
         );
-        if (["POST", "PUT", "PATCH"].includes(req.method)) {
-            console.log("Body:", req.body);
-        }
     });
     next();
 });
@@ -35,6 +37,7 @@ let products = [
         description: "Магнитные свитчи, быстрый отклик, идеальна для FPS и MOBA.",
         price: 24990,
         stock: 7,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -43,6 +46,7 @@ let products = [
         description: "Ультралёгкая беспроводная мышь для киберспорта.",
         price: 10990,
         stock: 12,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -51,6 +55,7 @@ let products = [
         description: "Толстый коврик с контролем и ровным скольжением.",
         price: 2490,
         stock: 18,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -59,6 +64,7 @@ let products = [
         description: "Комфортная гарнитура с хорошим микрофоном и звуком.",
         price: 7490,
         stock: 9,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -67,6 +73,7 @@ let products = [
         description: "Компактная 60% клавиатура, быстрые оптические свитчи.",
         price: 8990,
         stock: 6,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -75,6 +82,7 @@ let products = [
         description: "Лёгкая мышь с сотами, подходит для агрессивного аима.",
         price: 4990,
         stock: 15,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -83,6 +91,7 @@ let products = [
         description: "Панель кнопок для макросов, стрима и быстрого управления.",
         price: 9990,
         stock: 5,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -91,6 +100,7 @@ let products = [
         description: "Универсальный геймпад для ПК и консоли.",
         price: 6490,
         stock: 10,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -99,6 +109,7 @@ let products = [
         description: "Карта захвата для записи и стримов в Full HD.",
         price: 8990,
         stock: 4,
+        image: "",
     },
     {
         id: nanoid(6),
@@ -107,13 +118,14 @@ let products = [
         description: "USB-микрофон с чистым звуком.",
         price: 6990,
         stock: 8,
+        image: "",
     },
 ];
 
 function findProductOr404(id, res) {
     const product = products.find((p) => p.id === id);
     if (!product) {
-        res.status(404).json({ error: "Продукт не найден!" });
+        res.status(404).json({ error: "Продукт не найден" });
         return null;
     }
     return product;
@@ -121,7 +133,6 @@ function findProductOr404(id, res) {
 
 function validateProductPayload(payload, { partial = false } = {}) {
     const errors = [];
-
     const has = (k) => Object.prototype.hasOwnProperty.call(payload, k);
 
     if (!partial || has("name")) {
@@ -136,7 +147,8 @@ function validateProductPayload(payload, { partial = false } = {}) {
 
     if (!partial || has("description")) {
         const v = payload.description;
-        if (typeof v !== "string" || v.trim().length < 5) errors.push("описание должно быть строкой (от 5 символов)");
+        if (typeof v !== "string" || v.trim().length < 5)
+            errors.push("описание должно быть от 5 символов");
     }
 
     if (!partial || has("price")) {
@@ -146,11 +158,42 @@ function validateProductPayload(payload, { partial = false } = {}) {
 
     if (!partial || has("stock")) {
         const v = Number(payload.stock);
-        if (!Number.isFinite(v) || v < 0) errors.push("кол-во должно быть >= 0");
+        if (!Number.isFinite(v) || v < 0) errors.push("наличие должно быть >= 0");
+    }
+
+    if (!partial || has("image")) {
+        const v = payload.image;
+        if (v !== undefined && typeof v !== "string") errors.push("image должно быть строкой");
+        if (typeof v === "string" && v.trim()) {
+            const s = v.trim();
+            const ok = s.startsWith("/uploads/") || /^https?:\/\//i.test(s);
+            if (!ok) errors.push('image должно начинаться с "/uploads/" или "http(s)://"');
+        }
     }
 
     return errors;
 }
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(__dirname, "uploads")),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname || "").toLowerCase();
+        cb(null, `${Date.now()}-${nanoid(6)}${ext || ""}`);
+    },
+});
+
+const fileFilter = (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+        return cb(new Error("Only image files are allowed"), false);
+    }
+    cb(null, true);
+};
+
+const upload = multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 app.get("/api/products", (req, res) => {
     res.json(products);
@@ -162,19 +205,33 @@ app.get("/api/products/:id", (req, res) => {
     res.json(product);
 });
 
-app.post("/api/products", (req, res) => {
-    const errors = validateProductPayload(req.body, { partial: false });
-    if (errors.length) return res.status(400).json({ error: "Ошибка валидации!", details: errors });
+app.post("/api/products", upload.single("imageFile"), (req, res) => {
+    const body = req.body || {};
 
-    const { name, category, description, price, stock } = req.body;
+    const payload = {
+        name: (body.name ?? "").trim(),
+        category: (body.category ?? "").trim(),
+        description: (body.description ?? "").trim(),
+        price: Number(body.price),
+        stock: Number(body.stock),
+    };
+
+    const imageUrl = (body.imageUrl ?? "").trim();
+    const uploadedPath = req.file ? `/uploads/${req.file.filename}` : "";
+    const image = uploadedPath || imageUrl || "";
+
+    const errors = validateProductPayload(payload, { partial: false });
+
+    if (imageUrl && !/^https?:\/\//i.test(imageUrl)) {
+        errors.push("URL картинки должен начинаться с http(s)://");
+    }
+
+    if (errors.length) return res.status(400).json({ error: "Ошибка валидации", details: errors });
 
     const newProduct = {
         id: nanoid(6),
-        name: name.trim(),
-        category: category.trim(),
-        description: description.trim(),
-        price: Number(price),
-        stock: Number(stock),
+        ...payload,
+        image,
     };
 
     products.push(newProduct);
@@ -185,26 +242,28 @@ app.patch("/api/products/:id", (req, res) => {
     const product = findProductOr404(req.params.id, res);
     if (!product) return;
 
+    const body = req.body || {};
+
     if (
-        req.body?.name === undefined &&
-        req.body?.category === undefined &&
-        req.body?.description === undefined &&
-        req.body?.price === undefined &&
-        req.body?.stock === undefined
+        body.name === undefined &&
+        body.category === undefined &&
+        body.description === undefined &&
+        body.price === undefined &&
+        body.stock === undefined &&
+        body.image === undefined
     ) {
         return res.status(400).json({ error: "Nothing to update" });
     }
 
-    const errors = validateProductPayload(req.body, { partial: true });
-    if (errors.length) return res.status(400).json({ error: "Ошибка валидации!", details: errors });
+    const errors = validateProductPayload(body, { partial: true });
+    if (errors.length) return res.status(400).json({ error: "Ошибка валидации", details: errors });
 
-    const { name, category, description, price, stock } = req.body;
-
-    if (name !== undefined) product.name = String(name).trim();
-    if (category !== undefined) product.category = String(category).trim();
-    if (description !== undefined) product.description = String(description).trim();
-    if (price !== undefined) product.price = Number(price);
-    if (stock !== undefined) product.stock = Number(stock);
+    if (body.name !== undefined) product.name = String(body.name).trim();
+    if (body.category !== undefined) product.category = String(body.category).trim();
+    if (body.description !== undefined) product.description = String(body.description).trim();
+    if (body.price !== undefined) product.price = Number(body.price);
+    if (body.stock !== undefined) product.stock = Number(body.stock);
+    if (body.image !== undefined) product.image = String(body.image).trim();
 
     res.json(product);
 });
@@ -212,14 +271,14 @@ app.patch("/api/products/:id", (req, res) => {
 app.delete("/api/products/:id", (req, res) => {
     const id = req.params.id;
     const exists = products.some((p) => p.id === id);
-    if (!exists) return res.status(404).json({ error: "Product not found" });
+    if (!exists) return res.status(404).json({ error: "Продукт не найден" });
 
     products = products.filter((p) => p.id !== id);
     res.status(204).send();
 });
 
 app.use((req, res) => {
-    res.status(404).json({ error: "Not found" });
+    res.status(404).json({ error: "404 =(" });
 });
 
 app.use((err, req, res, next) => {
