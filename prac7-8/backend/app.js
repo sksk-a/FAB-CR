@@ -1,3 +1,4 @@
+const cors = require("cors");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -6,8 +7,10 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 
 const app = express();
-const PORT = 3000;
+const PORT = 3001;
 
+
+app.use(cors());
 app.use(express.json());
 
 const JWT_SECRET = "super_secret_key";
@@ -204,6 +207,7 @@ app.use((req, res, next) => {
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, first_name, last_name, password } = req.body;
+    console.log("REGISTER BODY:", req.body);
 
     if (!email || !first_name || !last_name || !password) {
       return res.status(400).json({
@@ -403,8 +407,8 @@ app.post("/api/products", (req, res) => {
  *       200:
  *         description: Список товаров
  */
-app.get("/api/products", (req, res) => {
-  return res.json(products);
+app.get("/api/products", authMiddleware, (req, res) => {
+    return res.json(products);
 });
 
 /**
