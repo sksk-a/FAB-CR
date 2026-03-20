@@ -1,42 +1,77 @@
-import { useState } from "react";
-import api from "./api";
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function RegisterPage() {
-    const [form, setForm] = useState({
-        email: "",
-        first_name: "",
-        last_name: "",
-        password: "",
-    });
+    const [email, setEmail] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const navigate = useNavigate();
 
-    const [message, setMessage] = useState("");
-
-    const onChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
-
-    const onSubmit = async (e) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
-
         try {
-            await api.post("/api/auth/register", form);
-            setMessage("Регистрация успешна");
-        } catch (error) {
-            setMessage(error.response?.data?.error || "Ошибка регистрации");
+            await axios.post("http://localhost:3001/api/auth/register", {
+                email: email,
+                first_name: firstName,
+                password: password
+            });
+            navigate("/login");
+        } catch (err) {
+            setError(err.response?.data?.error || "Ошибка регистрации");
         }
     };
 
     return (
-        <div style={{ padding: "20px" }}>
+        <div style={{ maxWidth: "400px", margin: "40px auto", padding: "20px" }}>
             <h2>Регистрация</h2>
-            <form onSubmit={onSubmit}>
-                <input name="email" placeholder="Email" onChange={onChange} /><br /><br />
-                <input name="first_name" placeholder="Имя" onChange={onChange} /><br /><br />
-                <input name="last_name" placeholder="Фамилия" onChange={onChange} /><br /><br />
-                <input name="password" type="password" placeholder="Пароль" onChange={onChange} /><br /><br />
-                <button type="submit">Зарегистрироваться</button>
+            {error && <p style={{ color: "red" }}>{error}</p>}
+
+            <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+                <input
+                    type="email"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={{ padding: "10px", fontSize: "16px" }}
+                />
+
+                <input
+                    type="text"
+                    placeholder="Имя"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                    style={{ padding: "10px", fontSize: "16px" }}
+                />
+
+                <input
+                    type="password"
+                    placeholder="Пароль"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={{ padding: "10px", fontSize: "16px" }}
+                />
+
+                {/* Выпадающий список ролей мы отсюда безжалостно вырезали */}
+
+                <button
+                    type="submit"
+                    style={{
+                        padding: "10px",
+                        fontSize: "16px",
+                        background: "#333",
+                        color: "white",
+                        border: "none",
+                        cursor: "pointer"
+                    }}
+                >
+                    Создать аккаунт
+                </button>
             </form>
-            <p>{message}</p>
         </div>
     );
 }
