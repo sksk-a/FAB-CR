@@ -1,0 +1,32 @@
+<div class="home-content">
+    <h2 class="is-center">📝 Добавить заметку</h2>
+    
+    <form id="note-form" class="row">
+        <div class="col-9">
+            <input type="text" id="note-input" placeholder="Простая запись" required>
+        </div>
+        <div class="col-3">
+            <button class="button primary full-width" type="submit">Добавить</button>
+        </div>
+    </form>
+    
+    <form id="reminder-form" class="row shadow" style="margin-top: 2rem; padding: 1rem; border-radius: 10px; background: #a4a4a4;">
+        <h4 class="col-12">⏰ Установить напоминание</h4>
+        <div class="col-5">
+            <input type="text" id="reminder-text" placeholder="Текст напоминания" required>
+        </div>
+        <div class="col-4">
+            <input type="datetime-local" id="reminder-time" required>
+        </div>
+        <div class="col-3">
+            <button class="button success full-width" type="submit">Напомнить</button>
+        </div>
+    </form>
+    
+    <h2 class="is-center" style="margin-top: 3rem;">Ваши записи</h2>
+    <ul id="notes-list" style="list-style: none; padding-left: 0;"></ul>
+    
+    <div class="is-right" style="margin-top: 2rem;">
+        <button id="clear-btn" class="button error outline shadow" style="background: #ff0000">🗑 Очистить всё</button>
+    </div>
+</div>
