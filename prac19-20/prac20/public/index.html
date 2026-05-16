@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>API</title>
+</head>
+<body>
+    <h1>MongoDB</h1>
+
+    <h2>Добавить пользователя</h2>
+    <input id="firstName" placeholder="Имя">
+    <input id="lastName" placeholder="Фамилия">
+    <input id="age" placeholder="Возраст" type="number">
+    <button onclick="createUser()">Добавить</button>
+
+    <h2>Получить всех пользователей</h2>
+    <button onclick="getUsers()">Показать всех</button>
+
+    <h2>Получить пользователя по ID</h2>
+    <input id="getId" placeholder="ID" type="number">
+    <button onclick="getUserById()">Найти</button>
+
+    <h2>Обновить пользователя</h2>
+    <input id="updateId" placeholder="ID" type="number">
+    <input id="updateFirstName" placeholder="Новое имя">
+    <input id="updateLastName" placeholder="Новая фамилия">
+    <input id="updateAge" placeholder="Новый возраст" type="number">
+    <button onclick="updateUser()">Обновить</button>
+
+    <h2>Удалить пользователя</h2>
+    <input id="deleteId" placeholder="ID" type="number">
+    <button onclick="deleteUser()">Удалить</button>
+
+    <h2>Результат</h2>
+    <pre id="result"></pre>
+
+    <script>
+    const API_URL = 'http://localhost:3000/api/users';
+
+    function showResult(data) {
+      document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function createUser() {
+      const user = {
+        first_name: document.getElementById('firstName').value,
+        last_name: document.getElementById('lastName').value,
+        age: Number(document.getElementById('age').value)
+      };
+
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(user)
+      });
+
+      const data = await response.json();
+      showResult(data);
+    }
+
+    async function getUsers() {
+      const response = await fetch(API_URL);
+      const data = await response.json();
+      showResult(data);
+    }
+
+    async function getUserById() {
+      const id = document.getElementById('getId').value;
+
+      const response = await fetch(`${API_URL}/${id}`);
+      const data = await response.json();
+      showResult(data);
+    }
+
+    async function updateUser() {
+      const id = document.getElementById('updateId').value;
+
+      const user = {};
+
+      const firstName = document.getElementById('updateFirstName').value;
+      const lastName = document.getElementById('updateLastName').value;
+      const age = document.getElementById('updateAge').value;
+
+      if (firstName) user.first_name = firstName;
+      if (lastName) user.last_name = lastName;
+      if (age) user.age = Number(age);
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(user)
+      });
+
+      const data = await response.json();
+      showResult(data);
+    }
+
+    async function deleteUser() {
+      const id = document.getElementById('deleteId').value;
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await response.json();
+      showResult(data);
+    }
+    </script>
+</body>
+</html>
